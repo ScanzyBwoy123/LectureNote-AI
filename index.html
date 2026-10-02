@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#2563eb"
+    >
+
+    <title>LectureNote AI</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- APP HEADER -->
+    <header class="topbar">
+
+        <div class="brand">
+            <div class="brand-icon">🎓</div>
+
+            <div>
+                <h1>LectureNote AI</h1>
+                <p>Your intelligent lecture assistant</p>
+            </div>
+        </div>
+
+        <button
+            id="newLessonBtn"
+            class="primary-button"
+        >
+            + New Lesson
+        </button>
+
+    </header>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="container">
+
+        <!-- WELCOME SECTION -->
+        <section class="welcome-card">
+
+            <div>
+                <span class="small-label">
+                    LECTURE ASSISTANT
+                </span>
+
+                <h2>
+                    Turn your teacher's lessons
+                    into useful study notes.
+                </h2>
+
+                <p>
+                    Record a lesson, capture the teacher's
+                    explanation, and organize it into notes
+                    you can study later.
+                </p>
+
+                <button
+                    id="startLessonBtn"
+                    class="start-button"
+                >
+                    🎙️ Start a Lesson
+                </button>
+            </div>
+
+            <div class="welcome-icon">
+                🎙️
+            </div>
+
+        </section>
+
+
+        <!-- QUICK STATS -->
+        <section class="stats-grid">
+
+            <div class="stat-card">
+                <div class="stat-icon">📚</div>
+
+                <div>
+                    <span>Lessons</span>
+                    <strong id="lessonCount">0</strong>
+                </div>
+            </div>
+
+
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+
+                <div>
+                    <span>Study Time</span>
+                    <strong id="studyTime">0 min</strong>
+                </div>
+            </div>
+
+
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+
+                <div>
+                    <span>Notes</span>
+                    <strong id="notesCount">0</strong>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- RECENT LESSONS -->
+        <section class="section">
+
+            <div class="section-heading">
+
+                <div>
+                    <span class="small-label">
+                        YOUR LIBRARY
+                    </span>
+
+                    <h2>Recent Lessons</h2>
+                </div>
+
+                <button
+                    id="viewAllBtn"
+                    class="text-button"
+                >
+                    View All
+                </button>
+
+            </div>
+
+
+            <div
+                id="lessonList"
+                class="lesson-list"
+            >
+
+                <!-- Empty state -->
+                <div
+                    id="emptyState"
+                    class="empty-state"
+                >
+
+                    <div class="empty-icon">
+                        📖
+                    </div>
+
+                    <h3>No lessons yet</h3>
+
+                    <p>
+                        Start your first lesson and your
+                        saved lessons will appear here.
+                    </p>
+
+                    <button
+                        id="emptyStartBtn"
+                        class="secondary-button"
+                    >
+                        Start Your First Lesson
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- NEW LESSON MODAL -->
+    <div
+        id="lessonModal"
+        class="modal hidden"
+    >
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <div>
+                    <span class="small-label">
+                        NEW LESSON
+                    </span>
+
+                    <h2>Start a Lesson</h2>
+                </div>
+
+                <button
+                    id="closeModalBtn"
+                    class="close-button"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <form id="lessonForm">
+
+                <label for="subject">
+                    Subject
+                </label>
+
+                <input
+                    id="subject"
+                    type="text"
+                    placeholder="e.g. Anatomy & Physiology"
+                    required
+                >
+
+
+                <label for="topic">
+                    Topic
+                </label>
+
+                <input
+                    id="topic"
+                    type="text"
+                    placeholder="e.g. Cardiovascular System"
+                    required
+                >
+
+
+                <label for="teacher">
+                    Teacher
+                </label>
+
+                <input
+                    id="teacher"
+                    type="text"
+                    placeholder="Teacher's name (optional)"
+                >
+
+
+                <button
+                    type="submit"
+                    class="start-button full-width"
+                >
+                    🎙️ Begin Lesson
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- JAVASCRIPT -->
+    <script src="app.js"></script>
+
+</body>
+</html>
