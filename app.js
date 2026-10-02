@@ -1540,19 +1540,17 @@ async function playSavedRecording(lessonId) {
 
 function renderLessons() {
 
-    if (
-        !lessonList ||
-        !emptyState
-    ) {
-
+    if (!lessonList || !emptyState) {
         return;
-
     }
 
 
-    const lessons =
-        getLessons();
+    const lessons = getLessons();
 
+
+    // ==========================================
+    // UPDATE DASHBOARD NUMBERS
+    // ==========================================
 
     if (lessonCount) {
 
@@ -1581,16 +1579,12 @@ function renderLessons() {
 
     const totalMinutes =
         lessons.reduce(
-            function (
-                total,
-                lesson
-            ) {
+            function (total, lesson) {
 
                 return (
                     total +
                     Number(
-                        lesson.duration ||
-                        0
+                        lesson.duration || 0
                     )
                 );
 
@@ -1607,6 +1601,10 @@ function renderLessons() {
     }
 
 
+    // ==========================================
+    // REMOVE OLD LESSON CARDS
+    // ==========================================
+
     const existingCards =
         lessonList.querySelectorAll(
             ".lesson-card"
@@ -1622,6 +1620,10 @@ function renderLessons() {
     );
 
 
+    // ==========================================
+    // NO LESSONS
+    // ==========================================
+
     if (lessons.length === 0) {
 
         emptyState.style.display =
@@ -1636,6 +1638,10 @@ function renderLessons() {
         "none";
 
 
+    // ==========================================
+    // CREATE LESSON CARDS
+    // ==========================================
+
     lessons.forEach(
         function (lesson) {
 
@@ -1649,70 +1655,158 @@ function renderLessons() {
                 "lesson-card";
 
 
-            card.innerHTML = `
+            // ==================================
+            // LESSON INFORMATION
+            // ==================================
 
-                <div>
+            const content =
+                document.createElement(
+                    "div"
+                );
 
-                    <h3>
-                        ${escapeHTML(
-                            lesson.topic
-                        )}
-                    </h3>
 
-                    <p>
-                        ${escapeHTML(
-                            lesson.subject
-                        )}
+            content.innerHTML = `
 
-                        • Teacher:
+                <h3>
+                    ${escapeHTML(
+                        lesson.topic
+                    )}
+                </h3>
 
-                        ${escapeHTML(
-                            lesson.teacher
-                        )}
-                    </p>
+                <p>
+                    ${escapeHTML(
+                        lesson.subject
+                    )}
 
-                    ${
-                        lesson.audioSaved
-                            ? `
-                                <p
-                                    style="
-                                        margin-top:8px;
-                                        color:#16a34a;
-                                        font-weight:700;
-                                    "
-                                >
-                                    🎙️ Recording saved
-                                </p>
-                              `
-                            : ""
-                    }
+                    • Teacher:
 
-                </div>
+                    ${escapeHTML(
+                        lesson.teacher
+                    )}
+                </p>
 
-                <div>
-
-                    <div class="lesson-date">
-
-                        ${escapeHTML(
-                            lesson.date
-                        )}
-
-                    </div>
-
+                <div class="lesson-date">
+                    ${escapeHTML(
+                        lesson.date
+                    )}
                 </div>
 
             `;
 
 
-            lessonList.appendChild(
-                card
+            card.appendChild(
+                content
             );
 
 
-            // Add play button
-            if (
-                lesson.audioSaved
-            ) {
+            // ==================================
+            // SAVED RECORDING
+            // ==================================
+
+            if (lesson.audioSaved) {
+
+                const recordingBox =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                recordingBox.className =
+                    "recording-player";
+
+
+                const label =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                label.className =
+                    "recording-player-label";
+
+
+                label.textContent =
+                    "🎙️ Saved Lecture Recording";
+
+
+                recordingBox.appendChild(
+                    label
+                );
+
+
+                // ==================================
+                // REAL AUDIO PLAYER
+                // ==================================
+
+                const audio =
+                    document.createElement(
+                        "audio"
+                    );
+
+
+                audio.controls =
+                    true;
+
+
+                audio.preload =
+                    "metadata";
+
+
+                audio.setAttribute(
+                    "playsinline",
+                    ""
+                );
+
+
+                audio.style.display =
+                    "block";
+
+
+                audio.style.width =
+                    "100%";
+
+
+                // ==================================
+                // LOAD AUDIO FROM INDEXED DB
+                // ==================================
+
+                loadRecordingIntoPlayer(
+                    lesson.id,
+                    audio
+                );
+
+
+                recordingBox.appendChild(
+                    audio
+                );
+
+
+                // ==================================
+                // STATUS
+                // ==================================
+
+                const savedText =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                savedText.className =
+                    "recording-saved-text";
+
+
+                savedText.textContent =
+                    "✓ Recording saved on this device";
+
+
+                recordingBox.appendChild(
+                    savedText
+                );
+
+
+                // ==================================
+                // OPTIONAL PLAY BUTTON
+                // ==================================
 
                 const playButton =
                     document.createElement(
@@ -1725,34 +1819,202 @@ function renderLessons() {
 
 
                 playButton.className =
-                    "btn";
+                    "play-recording-btn";
 
 
                 playButton.textContent =
                     "▶ Play Recording";
 
 
-                playButton.style.marginTop =
-                    "12px";
-
-
                 playButton.addEventListener(
                     "click",
-                    function () {
+                    async function () {
 
-                        playSavedRecording(
-                            lesson.id
-                        );
+                        try {
+
+                            await audio.play();
+
+                        } catch (error) {
+
+                            console.error(
+                                "Audio play failed:",
+                                error
+                            );
+
+
+                            alert(
+                                "Tap the play button on the audio player above to start the recording."
+                            );
+
+                        }
 
                     }
                 );
 
+async function loadRecordingIntoPlayer(
+    lessonId,
+    audioElement
+) {
 
-                card.appendChild(
-                    playButton
+    try {
+
+        const db =
+            await openAudioDatabase();
+
+
+        const recording =
+            await new Promise(
+                function (
+                    resolve,
+                    reject
+                ) {
+
+                    const transaction =
+                        db.transaction(
+                            AUDIO_STORE_NAME,
+                            "readonly"
+                        );
+
+
+                    const store =
+                        transaction.objectStore(
+                            AUDIO_STORE_NAME
+                        );
+
+
+                    const request =
+                        store.get(
+                            lessonId
+                        );
+
+
+                    request.onsuccess =
+                        function () {
+
+                            resolve(
+                                request.result
+                            );
+
+                        };
+
+
+                    request.onerror =
+                        function () {
+
+                            reject(
+                                request.error
+                            );
+
+                        };
+
+
+                    transaction.oncomplete =
+                        function () {
+
+                            db.close();
+
+                        };
+
+                }
+            );
+
+
+        if (!recording) {
+
+            console.error(
+                "No recording found for lesson:",
+                lessonId
+            );
+
+            return;
+
+        }
+
+
+        if (!recording.audio) {
+
+            console.error(
+                "Recording exists but contains no audio."
+            );
+
+            return;
+
+        }
+
+
+        console.log(
+            "Loading saved audio:",
+            recording.audio
+        );
+
+
+        // ==================================
+        // CREATE BROWSER AUDIO URL
+        // ==================================
+
+        const audioUrl =
+            URL.createObjectURL(
+                recording.audio
+            );
+
+
+        // ==================================
+        // GIVE URL TO AUDIO PLAYER
+        // ==================================
+
+        audioElement.src =
+            audioUrl;
+
+
+        audioElement.load();
+
+
+        // ==================================
+        // CLEAN UP WHEN PAGE IS LEFT
+        // ==================================
+
+        audioElement.addEventListener(
+            "emptied",
+            function () {
+
+                URL.revokeObjectURL(
+                    audioUrl
                 );
 
             }
+        );
+
+
+        console.log(
+            "Saved recording loaded into audio player."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load saved recording:",
+            error
+        );
+
+    }
+
+}
+                recordingBox.appendChild(
+                    playButton
+                );
+
+
+                card.appendChild(
+                    recordingBox
+                );
+
+            }
+
+
+            lessonList.appendChild(
+                card
+            );
 
         }
     );
