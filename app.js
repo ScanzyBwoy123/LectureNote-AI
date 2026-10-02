@@ -26,7 +26,7 @@ const studyTime = document.getElementById("studyTime");
 
 
 // ------------------------------------------
-// STORAGE KEY
+// STORAGE
 // ------------------------------------------
 
 const STORAGE_KEY = "lectureNoteAI_lessons";
@@ -171,7 +171,9 @@ lessonForm.addEventListener(
 
             notes: "",
 
-            transcript: ""
+            transcript: "",
+
+            audio: null
 
         };
 
@@ -188,10 +190,401 @@ lessonForm.addEventListener(
         closeLessonModal();
 
 
-        renderLessons();
+        // Start the microphone
+        startMicrophone(newLesson);
 
     }
 );
+
+
+// ==========================================
+// MICROPHONE SYSTEM
+// ==========================================
+
+
+// ------------------------------------------
+// MICROPHONE VARIABLES
+// ------------------------------------------
+
+let microphoneStream = null;
+
+let mediaRecorder = null;
+
+let audioChunks = [];
+
+let currentLesson = null;
+
+let recordingStartTime = null;
+
+let recordingTimer = null;
+
+
+// ------------------------------------------
+// START MICROPHONE
+// ------------------------------------------
+
+async function startMicrophone(lesson) {
+
+    currentLesson = lesson;
+
+    audioChunks = [];
+
+    try {
+
+        microphoneStream =
+            await navigator.mediaDevices.getUserMedia({
+
+                audio: {
+
+                    // Reduce background noise
+                    noiseSuppression: true,
+
+                    // Reduce echo
+                    echoCancellation: true,
+
+                    // Automatically adjust microphone volume
+                    autoGainControl: true,
+
+                    // Prefer a single microphone channel
+                    channelCount: 1
+
+                }
+
+            });
+
+
+        console.log(
+            "Microphone permission granted."
+        );
+
+
+        console.log(
+            "Noise suppression:",
+            getTrackSetting(
+                "noiseSuppression"
+            )
+        );
+
+
+        console.log(
+            "Echo cancellation:",
+            getTrackSetting(
+                "echoCancellation"
+            )
+        );
+
+
+        console.log(
+            "Automatic gain control:",
+            getTrackSetting(
+                "autoGainControl"
+            )
+        );
+
+
+        startRecording();
+
+
+    } catch (error) {
+
+        console.error(
+            "Microphone error:",
+            error
+        );
+
+
+        alert(
+            "Microphone access was not allowed. " +
+            "Please allow microphone access and try again."
+        );
+
+    }
+
+}
+
+
+// ------------------------------------------
+// CHECK MICROPHONE SETTINGS
+// ------------------------------------------
+
+function getTrackSetting(settingName) {
+
+    if (!microphoneStream) {
+        return "Unavailable";
+    }
+
+
+    const tracks =
+        microphoneStream.getAudioTracks();
+
+
+    if (!tracks.length) {
+        return "Unavailable";
+    }
+
+
+    const settings =
+        tracks[0].getSettings();
+
+
+    return settings[settingName] ?? "Not reported";
+
+}
+
+
+// ------------------------------------------
+// START RECORDING
+// ------------------------------------------
+
+function startRecording() {
+
+    if (!microphoneStream) {
+        return;
+    }
+
+
+    audioChunks = [];
+
+
+    mediaRecorder =
+        new MediaRecorder(
+            microphoneStream
+        );
+
+
+    mediaRecorder.addEventListener(
+        "dataavailable",
+        function (event) {
+
+            if (event.data.size > 0) {
+
+                audioChunks.push(
+                    event.data
+                );
+
+            }
+
+        }
+    );
+
+
+    mediaRecorder.addEventListener(
+        "stop",
+        function () {
+
+            saveRecording();
+
+        }
+    );
+
+
+    mediaRecorder.start();
+
+
+    recordingStartTime =
+        Date.now();
+
+
+    recordingTimer =
+        setInterval(
+            updateRecordingTime,
+            1000
+        );
+
+
+    console.log(
+        "Recording started."
+    );
+
+}
+
+
+// ------------------------------------------
+// UPDATE RECORDING TIMER
+// ------------------------------------------
+
+function updateRecordingTime() {
+
+    if (!recordingStartTime) {
+        return;
+    }
+
+
+    const elapsed =
+        Date.now() -
+        recordingStartTime;
+
+
+    const seconds =
+        Math.floor(
+            elapsed / 1000
+        );
+
+
+    console.log(
+        "Recording time:",
+        formatTime(seconds)
+    );
+
+}
+
+
+// ------------------------------------------
+// FORMAT TIME
+// ------------------------------------------
+
+function formatTime(seconds) {
+
+    const hours =
+        Math.floor(
+            seconds / 3600
+        );
+
+
+    const minutes =
+        Math.floor(
+            (seconds % 3600) / 60
+        );
+
+
+    const remainingSeconds =
+        seconds % 60;
+
+
+    return [
+
+        String(hours).padStart(2, "0"),
+
+        String(minutes).padStart(2, "0"),
+
+        String(remainingSeconds).padStart(2, "0")
+
+    ].join(":");
+
+}
+
+
+// ------------------------------------------
+// STOP RECORDING
+// ------------------------------------------
+
+function stopRecording() {
+
+    if (
+        mediaRecorder &&
+        mediaRecorder.state !== "inactive"
+    ) {
+
+        mediaRecorder.stop();
+
+    }
+
+
+    if (recordingTimer) {
+
+        clearInterval(
+            recordingTimer
+        );
+
+        recordingTimer = null;
+
+    }
+
+
+    if (microphoneStream) {
+
+        microphoneStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        microphoneStream = null;
+
+    }
+
+
+    console.log(
+        "Recording stopped."
+    );
+
+}
+
+
+// ------------------------------------------
+// SAVE RECORDING
+// ------------------------------------------
+
+function saveRecording() {
+
+    if (!audioChunks.length) {
+        return;
+    }
+
+
+    const audioBlob =
+        new Blob(
+            audioChunks,
+            {
+                type: "audio/webm"
+            }
+        );
+
+
+    console.log(
+        "Audio captured:",
+        audioBlob.size,
+        "bytes"
+    );
+
+
+    // For now we keep the recording in memory.
+    // We will add proper lesson audio storage later.
+
+    const duration =
+        recordingStartTime
+            ? Math.floor(
+                (
+                    Date.now() -
+                    recordingStartTime
+                ) / 60000
+            )
+            : 0;
+
+
+    if (currentLesson) {
+
+        const lessons =
+            getLessons();
+
+
+        const index =
+            lessons.findIndex(
+                lesson =>
+                    lesson.id ===
+                    currentLesson.id
+            );
+
+
+        if (index !== -1) {
+
+            lessons[index].duration =
+                Math.max(
+                    duration,
+                    1
+                );
+
+
+            saveLessons(lessons);
+
+        }
+
+    }
+
+
+    renderLessons();
+
+}
 
 
 // ------------------------------------------
@@ -202,8 +595,6 @@ function renderLessons() {
 
     const lessons = getLessons();
 
-
-    // Update statistics
 
     lessonCount.textContent =
         lessons.length;
@@ -218,7 +609,10 @@ function renderLessons() {
     const totalMinutes =
         lessons.reduce(
             (total, lesson) =>
-                total + Number(lesson.duration || 0),
+                total +
+                Number(
+                    lesson.duration || 0
+                ),
             0
         );
 
@@ -227,74 +621,86 @@ function renderLessons() {
         `${totalMinutes} min`;
 
 
-    // Clear current lesson cards
-
     const existingCards =
         lessonList.querySelectorAll(
             ".lesson-card"
         );
+
 
     existingCards.forEach(
         card => card.remove()
     );
 
 
-    // Show empty state
-
     if (lessons.length === 0) {
 
-        emptyState.style.display = "block";
+        emptyState.style.display =
+            "block";
 
         return;
     }
 
 
-    // Hide empty state
-
-    emptyState.style.display = "none";
-
-
-    // Show lessons
-
-    lessons.forEach(function (lesson) {
-
-        const card =
-            document.createElement("div");
-
-        card.className =
-            "lesson-card";
+    emptyState.style.display =
+        "none";
 
 
-        card.innerHTML = `
+    lessons.forEach(
+        function (lesson) {
 
-            <div>
+            const card =
+                document.createElement(
+                    "div"
+                );
 
-                <h3>
-                    ${escapeHTML(lesson.topic)}
-                </h3>
 
-                <p>
-                    ${escapeHTML(lesson.subject)}
-                    • Teacher:
-                    ${escapeHTML(lesson.teacher)}
-                </p>
+            card.className =
+                "lesson-card";
 
-            </div>
 
-            <div>
+            card.innerHTML = `
 
-                <div class="lesson-date">
-                    ${escapeHTML(lesson.date)}
+                <div>
+
+                    <h3>
+                        ${escapeHTML(
+                            lesson.topic
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeHTML(
+                            lesson.subject
+                        )}
+
+                        • Teacher:
+
+                        ${escapeHTML(
+                            lesson.teacher
+                        )}
+                    </p>
+
                 </div>
 
-            </div>
+                <div>
 
-        `;
+                    <div class="lesson-date">
+                        ${escapeHTML(
+                            lesson.date
+                        )}
+                    </div>
+
+                </div>
+
+            `;
 
 
-        lessonList.appendChild(card);
+            lessonList.appendChild(
+                card
+            );
 
-    });
+        }
+    );
 
 }
 
@@ -306,11 +712,31 @@ function renderLessons() {
 function escapeHTML(value) {
 
     return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 
 }
 
