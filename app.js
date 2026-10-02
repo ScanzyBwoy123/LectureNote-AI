@@ -916,7 +916,6 @@ function getSupportedAudioMimeType() {
 // ==========================================
 // START RECORDING
 // ==========================================
-
 function startRecording() {
 
     if (!microphoneStream) {
@@ -1010,6 +1009,13 @@ function startRecording() {
     );
 
 
+    // ==================================
+    // START SPEECH TRANSCRIPTION
+    // ==================================
+
+    startSpeechTranscription();
+
+
     mediaRecorder.start();
 
 
@@ -1035,8 +1041,6 @@ function startRecording() {
     );
 
 }
-
-
 // ==========================================
 // RECORDING TIMER
 // ==========================================
@@ -1126,8 +1130,14 @@ function formatTime(
 // ==========================================
 // STOP RECORDING
 // ==========================================
-
 function stopRecording() {
+
+    // ==================================
+    // STOP SPEECH TRANSCRIPTION
+    // ==================================
+
+    stopSpeechTranscription();
+
 
     if (
         mediaRecorder &&
@@ -1200,8 +1210,6 @@ function stopRecording() {
     );
 
 }
-
-
 // ==========================================
 // STOP BUTTON
 // ==========================================
@@ -2385,3 +2393,165 @@ function escapeHTML(
 // ==========================================
 
 renderLessons();
+// ==========================================
+// LIVE SPEECH TRANSCRIPTION
+// ==========================================
+
+let speechRecognition = null;
+
+let isTranscribing = false;
+
+function startSpeechTranscription() {
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+
+        console.log(
+            "Speech recognition is not supported in this browser."
+        );
+
+        return false;
+    }
+
+
+    speechRecognition =
+        new SpeechRecognition();
+
+
+    speechRecognition.continuous =
+        true;
+
+
+    speechRecognition.interimResults =
+        true;
+
+
+    speechRecognition.lang =
+        "en-US";
+
+
+    speechRecognition.onstart =
+        function () {
+
+            isTranscribing =
+                true;
+
+            console.log(
+                "Speech transcription started."
+            );
+
+        };
+
+
+    speechRecognition.onresult =
+        function (event) {
+
+            let finalText = "";
+
+
+            for (
+                let i = event.resultIndex;
+                i < event.results.length;
+                i++
+            ) {
+
+                const result =
+                    event.results[i];
+
+
+                const transcript =
+                    result[0].transcript;
+
+
+                if (result.isFinal) {
+
+                    finalText +=
+                        transcript + " ";
+
+                }
+
+            }
+
+
+            if (finalText.trim()) {
+
+                console.log(
+                    "Transcript:",
+                    finalText
+                );
+
+            }
+
+        };
+
+
+    speechRecognition.onerror =
+        function (event) {
+
+            console.error(
+                "Speech recognition error:",
+                event.error
+            );
+
+        };
+
+
+    speechRecognition.onend =
+        function () {
+
+            isTranscribing =
+                false;
+
+            console.log(
+                "Speech transcription ended."
+            );
+
+        };
+
+
+    try {
+
+        speechRecognition.start();
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Could not start speech transcription:",
+            error
+        );
+
+        return false;
+
+    }
+
+}
+
+
+function stopSpeechTranscription() {
+
+    if (
+        speechRecognition &&
+        isTranscribing
+    ) {
+
+        try {
+
+            speechRecognition.stop();
+
+        } catch (error) {
+
+            console.error(
+                "Could not stop speech transcription:",
+                error
+            );
+
+        }
+
+    }
+
+}
