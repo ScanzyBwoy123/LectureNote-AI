@@ -1324,72 +1324,56 @@ async function saveRecording() {
 // ==========================================
 // PLAY SAVED RECORDING
 // ==========================================
-
-async function playSavedRecording(
-    lessonId
-) {
+async function playSavedRecording(lessonId) {
 
     try {
 
-        const db =
-            await openAudioDatabase();
+        const db = await openAudioDatabase();
 
+        const recording = await new Promise(
+            function (resolve, reject) {
 
-        const recording =
-            await new Promise(
-                function (
-                    resolve,
-                    reject
-                ) {
+                const transaction =
+                    db.transaction(
+                        AUDIO_STORE_NAME,
+                        "readonly"
+                    );
 
-                    const transaction =
-                        db.transaction(
-                            AUDIO_STORE_NAME,
-                            "readonly"
+                const store =
+                    transaction.objectStore(
+                        AUDIO_STORE_NAME
+                    );
+
+                const request =
+                    store.get(lessonId);
+
+                request.onsuccess =
+                    function () {
+
+                        resolve(
+                            request.result
                         );
 
+                    };
 
-                    const store =
-                        transaction.objectStore(
-                            AUDIO_STORE_NAME
+                request.onerror =
+                    function () {
+
+                        reject(
+                            request.error
                         );
 
+                    };
 
-                    const request =
-                        store.get(
-                            lessonId
-                        );
+                transaction.oncomplete =
+                    function () {
 
+                        db.close();
 
-                    request.onsuccess =
-                        function () {
+                    };
 
-                            resolve(
-                                request.result
-                            );
-
-                        };
-
-
-                    request.onerror =
-                        function () {
-
-                            reject(
-                                request.error
-                            );
-
-                        };
-
-
-                    transaction.oncomplete =
-                        function () {
-
-                            db.close();
-
-                        };
-
-                }
-            );
+            }
+        );
 
 
         if (!recording) {
@@ -1403,32 +1387,136 @@ async function playSavedRecording(
         }
 
 
+        if (!recording.audio) {
+
+            alert(
+                "The recording exists, but the audio file is missing."
+            );
+
+            return;
+
+        }
+
+
+        console.log(
+            "Saved recording found:",
+            recording
+        );
+
+
+        const audioBlob =
+            recording.audio;
+
+
+        console.log(
+            "Audio type:",
+            audioBlob.type
+        );
+
+
+        console.log(
+            "Audio size:",
+            audioBlob.size
+        );
+
+
+        if (audioBlob.size === 0) {
+
+            alert(
+                "The saved audio file is empty."
+            );
+
+            return;
+
+        }
+
+
+        // Create a playable URL
         const audioUrl =
             URL.createObjectURL(
-                recording.audio
+                audioBlob
             );
 
 
+        console.log(
+            "Audio URL created:",
+            audioUrl
+        );
+
+
+        // Create audio player
         const audio =
-            new Audio(
-                audioUrl
+            new Audio();
+
+
+        audio.preload =
+            "auto";
+
+
+        audio.src =
+            audioUrl;
+
+
+        audio.onloadedmetadata =
+            function () {
+
+                console.log(
+                    "Audio duration:",
+                    audio.duration
+                );
+
+            };
+
+
+        audio.oncanplay =
+            function () {
+
+            console.log(
+                "Audio can play."
             );
 
+        };
 
-        audio.play();
+
+        audio.onerror =
+            function () {
+
+                console.error(
+                    "Audio playback error:",
+                    audio.error
+                );
 
 
-        audio.addEventListener(
-            "ended",
+                alert(
+                    "The recording was saved, but your browser could not play this audio format."
+                );
+
+
+                URL.revokeObjectURL(
+                    audioUrl
+                );
+
+            };
+
+
+        audio.onended =
             function () {
 
                 URL.revokeObjectURL(
                     audioUrl
                 );
 
-            }
-        );
+            };
 
+
+        // iPhone/Safari requires play()
+        // to happen from the user's interaction
+        await audio.play();
+
+
+        console.log(
+            "Recording playback started."
+        );
 
     } catch (error) {
 
@@ -1439,13 +1527,12 @@ async function playSavedRecording(
 
 
         alert(
-            "The saved recording could not be played."
+            "The recording could not be played. Please try again."
         );
 
     }
 
 }
-
 
 // ==========================================
 // DISPLAY LESSONS
