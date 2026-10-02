@@ -24,6 +24,22 @@ const lessonCount = document.getElementById("lessonCount");
 const notesCount = document.getElementById("notesCount");
 const studyTime = document.getElementById("studyTime");
 
+// Recording panel
+const recordingPanel =
+    document.getElementById("recordingPanel");
+
+const recordingDot =
+    document.getElementById("recordingDot");
+
+const recordingStatusText =
+    document.getElementById("recordingStatusText");
+
+const recordingTimerElement =
+    document.getElementById("recordingTimer");
+
+const stopRecordingBtn =
+    document.getElementById("stopRecordingBtn");
+
 
 // ------------------------------------------
 // STORAGE
@@ -54,26 +70,55 @@ function closeLessonModal() {
 // BUTTON EVENTS
 // ------------------------------------------
 
-newLessonBtn.addEventListener("click", openLessonModal);
+newLessonBtn.addEventListener(
+    "click",
+    openLessonModal
+);
 
-startLessonBtn.addEventListener("click", openLessonModal);
+startLessonBtn.addEventListener(
+    "click",
+    openLessonModal
+);
 
-emptyStartBtn.addEventListener("click", openLessonModal);
+emptyStartBtn.addEventListener(
+    "click",
+    openLessonModal
+);
 
-closeModalBtn.addEventListener("click", closeLessonModal);
+closeModalBtn.addEventListener(
+    "click",
+    closeLessonModal
+);
+
+
+// ------------------------------------------
+// STOP RECORDING BUTTON
+// ------------------------------------------
+
+if (stopRecordingBtn) {
+
+    stopRecordingBtn.addEventListener(
+        "click",
+        stopRecording
+    );
+
+}
 
 
 // ------------------------------------------
 // CLOSE MODAL WHEN CLICKING OUTSIDE
 // ------------------------------------------
 
-lessonModal.addEventListener("click", function (event) {
+lessonModal.addEventListener(
+    "click",
+    function (event) {
 
-    if (event.target === lessonModal) {
-        closeLessonModal();
+        if (event.target === lessonModal) {
+            closeLessonModal();
+        }
+
     }
-
-});
+);
 
 
 // ------------------------------------------
@@ -101,7 +146,9 @@ function getLessons() {
         );
 
         return [];
+
     }
+
 }
 
 
@@ -129,15 +176,23 @@ lessonForm.addEventListener(
 
         event.preventDefault();
 
-
         const subject =
-            document.getElementById("subject").value.trim();
+            document
+                .getElementById("subject")
+                .value
+                .trim();
 
         const topic =
-            document.getElementById("topic").value.trim();
+            document
+                .getElementById("topic")
+                .value
+                .trim();
 
         const teacher =
-            document.getElementById("teacher").value.trim();
+            document
+                .getElementById("teacher")
+                .value
+                .trim();
 
 
         if (!subject || !topic) {
@@ -156,16 +211,19 @@ lessonForm.addEventListener(
 
             topic: topic,
 
-            teacher: teacher || "Not specified",
+            teacher:
+                teacher ||
+                "Not specified",
 
-            date: new Date().toLocaleDateString(
-                undefined,
-                {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric"
-                }
-            ),
+            date:
+                new Date().toLocaleDateString(
+                    undefined,
+                    {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric"
+                    }
+                ),
 
             duration: 0,
 
@@ -178,10 +236,14 @@ lessonForm.addEventListener(
         };
 
 
-        lessons.unshift(newLesson);
+        lessons.unshift(
+            newLesson
+        );
 
 
-        saveLessons(lessons);
+        saveLessons(
+            lessons
+        );
 
 
         lessonForm.reset();
@@ -190,8 +252,10 @@ lessonForm.addEventListener(
         closeLessonModal();
 
 
-        // Start the microphone
-        startMicrophone(newLesson);
+        // Start microphone
+        startMicrophone(
+            newLesson
+        );
 
     }
 );
@@ -229,6 +293,7 @@ async function startMicrophone(lesson) {
 
     audioChunks = [];
 
+
     try {
 
         microphoneStream =
@@ -245,7 +310,7 @@ async function startMicrophone(lesson) {
                     // Automatically adjust microphone volume
                     autoGainControl: true,
 
-                    // Prefer a single microphone channel
+                    // Prefer one microphone channel
                     channelCount: 1
 
                 }
@@ -327,7 +392,68 @@ function getTrackSetting(settingName) {
         tracks[0].getSettings();
 
 
-    return settings[settingName] ?? "Not reported";
+    return settings[settingName] ??
+        "Not reported";
+
+}
+
+
+// ------------------------------------------
+// SHOW RECORDING PANEL
+// ------------------------------------------
+
+function showRecordingPanel() {
+
+    if (!recordingPanel) {
+        return;
+    }
+
+
+    recordingPanel.classList.remove(
+        "hidden"
+    );
+
+
+    if (recordingStatusText) {
+
+        recordingStatusText.textContent =
+            "Recording lesson...";
+
+    }
+
+
+    if (recordingDot) {
+
+        recordingDot.style.display =
+            "inline-block";
+
+    }
+
+
+    if (stopRecordingBtn) {
+
+        stopRecordingBtn.disabled =
+            false;
+
+    }
+
+}
+
+
+// ------------------------------------------
+// HIDE RECORDING PANEL
+// ------------------------------------------
+
+function hideRecordingPanel() {
+
+    if (!recordingPanel) {
+        return;
+    }
+
+
+    recordingPanel.classList.add(
+        "hidden"
+    );
 
 }
 
@@ -346,10 +472,27 @@ function startRecording() {
     audioChunks = [];
 
 
-    mediaRecorder =
-        new MediaRecorder(
-            microphoneStream
+    try {
+
+        mediaRecorder =
+            new MediaRecorder(
+                microphoneStream
+            );
+
+    } catch (error) {
+
+        console.error(
+            "MediaRecorder error:",
+            error
         );
+
+        alert(
+            "This browser cannot record audio."
+        );
+
+        return;
+
+    }
 
 
     mediaRecorder.addEventListener(
@@ -383,6 +526,12 @@ function startRecording() {
 
     recordingStartTime =
         Date.now();
+
+
+    showRecordingPanel();
+
+
+    updateRecordingTime();
 
 
     recordingTimer =
@@ -421,9 +570,24 @@ function updateRecordingTime() {
         );
 
 
+    const formatted =
+        formatTime(
+            seconds
+        );
+
+
+    // Show timer on screen
+    if (recordingTimerElement) {
+
+        recordingTimerElement.textContent =
+            formatted;
+
+    }
+
+
     console.log(
         "Recording time:",
-        formatTime(seconds)
+        formatted
     );
 
 }
@@ -453,11 +617,14 @@ function formatTime(seconds) {
 
     return [
 
-        String(hours).padStart(2, "0"),
+        String(hours)
+            .padStart(2, "0"),
 
-        String(minutes).padStart(2, "0"),
+        String(minutes)
+            .padStart(2, "0"),
 
-        String(remainingSeconds).padStart(2, "0")
+        String(remainingSeconds)
+            .padStart(2, "0")
 
     ].join(":");
 
@@ -504,6 +671,30 @@ function stopRecording() {
     }
 
 
+    if (recordingStatusText) {
+
+        recordingStatusText.textContent =
+            "Lesson stopped";
+
+    }
+
+
+    if (recordingDot) {
+
+        recordingDot.style.display =
+            "none";
+
+    }
+
+
+    if (stopRecordingBtn) {
+
+        stopRecordingBtn.disabled =
+            true;
+
+    }
+
+
     console.log(
         "Recording stopped."
     );
@@ -537,9 +728,6 @@ function saveRecording() {
         "bytes"
     );
 
-
-    // For now we keep the recording in memory.
-    // We will add proper lesson audio storage later.
 
     const duration =
         recordingStartTime
@@ -575,7 +763,9 @@ function saveRecording() {
                 );
 
 
-            saveLessons(lessons);
+            saveLessons(
+                lessons
+            );
 
         }
 
@@ -583,6 +773,20 @@ function saveRecording() {
 
 
     renderLessons();
+
+
+    // Clear recording data
+    audioChunks = [];
+
+    currentLesson = null;
+
+    recordingStartTime = null;
+
+
+    setTimeout(
+        hideRecordingPanel,
+        1500
+    );
 
 }
 
@@ -593,7 +797,8 @@ function saveRecording() {
 
 function renderLessons() {
 
-    const lessons = getLessons();
+    const lessons =
+        getLessons();
 
 
     lessonCount.textContent =
@@ -602,7 +807,8 @@ function renderLessons() {
 
     notesCount.textContent =
         lessons.filter(
-            lesson => lesson.notes
+            lesson =>
+                lesson.notes
         ).length;
 
 
@@ -628,7 +834,8 @@ function renderLessons() {
 
 
     existingCards.forEach(
-        card => card.remove()
+        card =>
+            card.remove()
     );
 
 
@@ -638,6 +845,7 @@ function renderLessons() {
             "block";
 
         return;
+
     }
 
 
