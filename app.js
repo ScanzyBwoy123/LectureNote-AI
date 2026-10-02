@@ -63,11 +63,22 @@ const stopRecordingBtn =
 
 
 // ==========================================
-// STORAGE
+// LESSON STORAGE
 // ==========================================
 
 const STORAGE_KEY =
     "lectureNoteAI_lessons";
+
+
+// ==========================================
+// AUDIO DATABASE
+// ==========================================
+
+const AUDIO_DB_NAME =
+    "LectureNoteAI_AudioDB";
+
+const AUDIO_STORE_NAME =
+    "recordings";
 
 
 // ==========================================
@@ -97,7 +108,9 @@ function openLessonModal() {
         return;
     }
 
-    lessonModal.classList.remove("hidden");
+    lessonModal.classList.remove(
+        "hidden"
+    );
 
 }
 
@@ -112,7 +125,9 @@ function closeLessonModal() {
         return;
     }
 
-    lessonModal.classList.add("hidden");
+    lessonModal.classList.add(
+        "hidden"
+    );
 
 }
 
@@ -162,7 +177,7 @@ if (closeModalBtn) {
 
 
 // ==========================================
-// CLOSE MODAL WHEN CLICKING OUTSIDE
+// CLOSE MODAL OUTSIDE CLICK
 // ==========================================
 
 if (lessonModal) {
@@ -187,7 +202,7 @@ if (lessonModal) {
 
 
 // ==========================================
-// STORAGE FUNCTIONS
+// LESSON STORAGE FUNCTIONS
 // ==========================================
 
 function getLessons() {
@@ -197,11 +212,13 @@ function getLessons() {
             STORAGE_KEY
         );
 
+
     if (!savedLessons) {
 
         return [];
 
     }
+
 
     try {
 
@@ -223,12 +240,233 @@ function getLessons() {
 }
 
 
-function saveLessons(lessons) {
+function saveLessons(
+    lessons
+) {
 
     localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(lessons)
     );
+
+}
+
+
+// ==========================================
+// OPEN AUDIO DATABASE
+// ==========================================
+
+function openAudioDatabase() {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const request =
+                indexedDB.open(
+                    AUDIO_DB_NAME,
+                    1
+                );
+
+
+            request.onupgradeneeded =
+                function (event) {
+
+                    const db =
+                        event.target.result;
+
+
+                    if (
+                        !db.objectStoreNames.contains(
+                            AUDIO_STORE_NAME
+                        )
+                    ) {
+
+                        db.createObjectStore(
+                            AUDIO_STORE_NAME,
+                            {
+                                keyPath:
+                                    "lessonId"
+                            }
+                        );
+
+                    }
+
+                };
+
+
+            request.onsuccess =
+                function () {
+
+                    resolve(
+                        request.result
+                    );
+
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+
+                };
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// SAVE AUDIO PERMANENTLY
+// ==========================================
+
+function saveAudioToDatabase(
+    lessonId,
+    audioBlob,
+    durationSeconds
+) {
+
+    return openAudioDatabase()
+        .then(
+            function (db) {
+
+                return new Promise(
+                    function (
+                        resolve,
+                        reject
+                    ) {
+
+                        const transaction =
+                            db.transaction(
+                                AUDIO_STORE_NAME,
+                                "readwrite"
+                            );
+
+
+                        const store =
+                            transaction.objectStore(
+                                AUDIO_STORE_NAME
+                            );
+
+
+                        store.put({
+
+                            lessonId:
+                                lessonId,
+
+                            audio:
+                                audioBlob,
+
+                            durationSeconds:
+                                durationSeconds,
+
+                            savedAt:
+                                new Date()
+                                    .toISOString()
+
+                        });
+
+
+                        transaction.oncomplete =
+                            function () {
+
+                                db.close();
+
+                                resolve();
+
+                            };
+
+
+                        transaction.onerror =
+                            function () {
+
+                                db.close();
+
+                                reject(
+                                    transaction.error
+                                );
+
+                            };
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+// ==========================================
+// CHECK WHETHER RECORDING EXISTS
+// ==========================================
+
+function recordingExists(
+    lessonId
+) {
+
+    return openAudioDatabase()
+        .then(
+            function (db) {
+
+                return new Promise(
+                    function (
+                        resolve,
+                        reject
+                    ) {
+
+                        const transaction =
+                            db.transaction(
+                                AUDIO_STORE_NAME,
+                                "readonly"
+                            );
+
+
+                        const store =
+                            transaction.objectStore(
+                                AUDIO_STORE_NAME
+                            );
+
+
+                        const request =
+                            store.get(
+                                lessonId
+                            );
+
+
+                        request.onsuccess =
+                            function () {
+
+                                db.close();
+
+                                resolve(
+                                    Boolean(
+                                        request.result
+                                    )
+                                );
+
+                            };
+
+
+                        request.onerror =
+                            function () {
+
+                                db.close();
+
+                                reject(
+                                    request.error
+                                );
+
+                            };
+
+                    }
+                );
+
+            }
+        );
 
 }
 
@@ -248,21 +486,27 @@ if (lessonForm) {
 
             const subject =
                 document
-                    .getElementById("subject")
+                    .getElementById(
+                        "subject"
+                    )
                     ?.value
                     .trim();
 
 
             const topic =
                 document
-                    .getElementById("topic")
+                    .getElementById(
+                        "topic"
+                    )
                     ?.value
                     .trim();
 
 
             const teacher =
                 document
-                    .getElementById("teacher")
+                    .getElementById(
+                        "teacher"
+                    )
                     ?.value
                     .trim();
 
@@ -284,11 +528,14 @@ if (lessonForm) {
 
             const newLesson = {
 
-                id: Date.now(),
+                id:
+                    Date.now(),
 
-                subject: subject,
+                subject:
+                    subject,
 
-                topic: topic,
+                topic:
+                    topic,
 
                 teacher:
                     teacher ||
@@ -299,19 +546,28 @@ if (lessonForm) {
                         .toLocaleDateString(
                             undefined,
                             {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric"
+                                year:
+                                    "numeric",
+
+                                month:
+                                    "short",
+
+                                day:
+                                    "numeric"
                             }
                         ),
 
-                duration: 0,
+                duration:
+                    0,
 
-                notes: "",
+                notes:
+                    "",
 
-                transcript: "",
+                transcript:
+                    "",
 
-                audio: null
+                audioSaved:
+                    false
 
             };
 
@@ -335,7 +591,6 @@ if (lessonForm) {
             renderLessons();
 
 
-            // Start microphone
             await startMicrophone(
                 newLesson
             );
@@ -354,12 +609,14 @@ async function startMicrophone(
     lesson
 ) {
 
-    currentLesson = lesson;
+    currentLesson =
+        lesson;
 
-    audioChunks = [];
+
+    audioChunks =
+        [];
 
 
-    // Check browser support
     if (
         !navigator.mediaDevices ||
         !navigator.mediaDevices.getUserMedia
@@ -383,17 +640,17 @@ async function startMicrophone(
 
                     audio: {
 
-                        // Reduce background noise
-                        noiseSuppression: true,
+                        noiseSuppression:
+                            true,
 
-                        // Reduce echo
-                        echoCancellation: true,
+                        echoCancellation:
+                            true,
 
-                        // Automatically control microphone volume
-                        autoGainControl: true,
+                        autoGainControl:
+                            true,
 
-                        // Use one audio channel
-                        channelCount: 1
+                        channelCount:
+                            1
 
                     }
 
@@ -405,7 +662,6 @@ async function startMicrophone(
         );
 
 
-        // Show actual browser microphone settings
         console.log(
             "Noise suppression:",
             getTrackSetting(
@@ -503,14 +759,12 @@ function moveRecordingPanelToDashboard() {
 
 
     const main =
-        document.querySelector("main");
+        document.querySelector(
+            "main"
+        );
 
 
     if (!main) {
-
-        console.warn(
-            "Main dashboard element not found."
-        );
 
         return;
 
@@ -544,8 +798,6 @@ function showRecordingPanel() {
     }
 
 
-    // Make sure the panel is outside
-    // the lesson creation modal.
     moveRecordingPanelToDashboard();
 
 
@@ -621,7 +873,8 @@ function startRecording() {
     }
 
 
-    audioChunks = [];
+    audioChunks =
+        [];
 
 
     try {
@@ -649,10 +902,6 @@ function startRecording() {
     }
 
 
-    // ======================================
-    // AUDIO DATA
-    // ======================================
-
     mediaRecorder.addEventListener(
         "dataavailable",
         function (event) {
@@ -672,10 +921,6 @@ function startRecording() {
     );
 
 
-    // ======================================
-    // RECORDING STOPPED
-    // ======================================
-
     mediaRecorder.addEventListener(
         "stop",
         function () {
@@ -685,10 +930,6 @@ function startRecording() {
         }
     );
 
-
-    // ======================================
-    // START
-    // ======================================
 
     mediaRecorder.start();
 
@@ -718,7 +959,7 @@ function startRecording() {
 
 
 // ==========================================
-// UPDATE RECORDING TIMER
+// RECORDING TIMER
 // ==========================================
 
 function updateRecordingTime() {
@@ -741,16 +982,12 @@ function updateRecordingTime() {
         );
 
 
-    const formatted =
-        formatTime(
-            seconds
-        );
-
-
     if (recordingTimerElement) {
 
         recordingTimerElement.textContent =
-            formatted;
+            formatTime(
+                seconds
+            );
 
     }
 
@@ -784,14 +1021,23 @@ function formatTime(
     return [
 
         String(hours)
-            .padStart(2, "0"),
+            .padStart(
+                2,
+                "0"
+            ),
 
         String(minutes)
-            .padStart(2, "0"),
+            .padStart(
+                2,
+                "0"
+            ),
 
         String(
             remainingSeconds
-        ).padStart(2, "0")
+        ).padStart(
+            2,
+            "0"
+        )
 
     ].join(":");
 
@@ -804,7 +1050,6 @@ function formatTime(
 
 function stopRecording() {
 
-    // Stop MediaRecorder
     if (
         mediaRecorder &&
         mediaRecorder.state !==
@@ -816,19 +1061,18 @@ function stopRecording() {
     }
 
 
-    // Stop timer
     if (recordingTimer) {
 
         clearInterval(
             recordingTimer
         );
 
-        recordingTimer = null;
+        recordingTimer =
+            null;
 
     }
 
 
-    // Stop microphone
     if (microphoneStream) {
 
         microphoneStream
@@ -842,7 +1086,8 @@ function stopRecording() {
             );
 
 
-        microphoneStream = null;
+        microphoneStream =
+            null;
 
     }
 
@@ -850,7 +1095,7 @@ function stopRecording() {
     if (recordingStatusText) {
 
         recordingStatusText.textContent =
-            "Lesson stopped";
+            "Saving recording...";
 
     }
 
@@ -896,7 +1141,7 @@ if (stopRecordingBtn) {
 // SAVE RECORDING
 // ==========================================
 
-function saveRecording() {
+async function saveRecording() {
 
     if (!audioChunks.length) {
 
@@ -911,9 +1156,21 @@ function saveRecording() {
         new Blob(
             audioChunks,
             {
-                type: "audio/webm"
+                type:
+                    "audio/webm"
             }
         );
+
+
+    const durationSeconds =
+        recordingStartTime
+            ? Math.floor(
+                (
+                    Date.now() -
+                    recordingStartTime
+                ) / 1000
+            )
+            : 0;
 
 
     console.log(
@@ -923,20 +1180,29 @@ function saveRecording() {
     );
 
 
-    // Calculate recording duration
-    const duration =
-        recordingStartTime
-            ? Math.floor(
-                (
-                    Date.now() -
-                    recordingStartTime
-                ) / 60000
-            )
-            : 0;
+    if (!currentLesson) {
+
+        return;
+
+    }
 
 
-    // Update current lesson
-    if (currentLesson) {
+    try {
+
+        // ==================================
+        // SAVE ACTUAL AUDIO
+        // ==================================
+
+        await saveAudioToDatabase(
+            currentLesson.id,
+            audioBlob,
+            durationSeconds
+        );
+
+
+        // ==================================
+        // UPDATE LESSON
+        // ==================================
 
         const lessons =
             getLessons();
@@ -959,9 +1225,29 @@ function saveRecording() {
 
             lessons[index].duration =
                 Math.max(
-                    duration,
+                    Math.floor(
+                        durationSeconds /
+                        60
+                    ),
                     1
                 );
+
+
+            lessons[index].audioSaved =
+                true;
+
+
+            lessons[index].audioType =
+                "audio/webm";
+
+
+            lessons[index].audioSize =
+                audioBlob.size;
+
+
+            lessons[index].audioSavedAt =
+                new Date()
+                    .toISOString();
 
 
             saveLessons(
@@ -970,42 +1256,193 @@ function saveRecording() {
 
         }
 
+
+        if (recordingStatusText) {
+
+            recordingStatusText.textContent =
+                "✓ Recording saved on this device";
+
+        }
+
+
+        console.log(
+            "Recording permanently saved."
+        );
+
+
+        renderLessons();
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not save recording:",
+            error
+        );
+
+
+        if (recordingStatusText) {
+
+            recordingStatusText.textContent =
+                "Recording could not be saved";
+
+        }
+
+
+        alert(
+            "The recording was captured, " +
+            "but it could not be saved."
+        );
+
     }
 
 
-    renderLessons();
+    audioChunks =
+        [];
 
 
-    // ======================================
-    // IMPORTANT
-    // ======================================
-    // The audio is currently kept in memory.
-    // Later we can add permanent audio storage
-    // and AI transcription.
-
-    console.log(
-        "Recording saved in memory."
-    );
+    currentLesson =
+        null;
 
 
-    // Clear recording data
-    audioChunks = [];
-
-    currentLesson = null;
-
-    recordingStartTime = null;
+    recordingStartTime =
+        null;
 
 
-    // Keep "Lesson stopped" visible
-    // briefly before hiding the panel.
     setTimeout(
         function () {
 
             hideRecordingPanel();
 
         },
-        1500
+        2000
     );
+
+}
+
+
+// ==========================================
+// PLAY SAVED RECORDING
+// ==========================================
+
+async function playSavedRecording(
+    lessonId
+) {
+
+    try {
+
+        const db =
+            await openAudioDatabase();
+
+
+        const recording =
+            await new Promise(
+                function (
+                    resolve,
+                    reject
+                ) {
+
+                    const transaction =
+                        db.transaction(
+                            AUDIO_STORE_NAME,
+                            "readonly"
+                        );
+
+
+                    const store =
+                        transaction.objectStore(
+                            AUDIO_STORE_NAME
+                        );
+
+
+                    const request =
+                        store.get(
+                            lessonId
+                        );
+
+
+                    request.onsuccess =
+                        function () {
+
+                            resolve(
+                                request.result
+                            );
+
+                        };
+
+
+                    request.onerror =
+                        function () {
+
+                            reject(
+                                request.error
+                            );
+
+                        };
+
+
+                    transaction.oncomplete =
+                        function () {
+
+                            db.close();
+
+                        };
+
+                }
+            );
+
+
+        if (!recording) {
+
+            alert(
+                "No saved recording was found."
+            );
+
+            return;
+
+        }
+
+
+        const audioUrl =
+            URL.createObjectURL(
+                recording.audio
+            );
+
+
+        const audio =
+            new Audio(
+                audioUrl
+            );
+
+
+        audio.play();
+
+
+        audio.addEventListener(
+            "ended",
+            function () {
+
+                URL.revokeObjectURL(
+                    audioUrl
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not play recording:",
+            error
+        );
+
+
+        alert(
+            "The saved recording could not be played."
+        );
+
+    }
 
 }
 
@@ -1030,7 +1467,6 @@ function renderLessons() {
         getLessons();
 
 
-    // Lesson count
     if (lessonCount) {
 
         lessonCount.textContent =
@@ -1039,7 +1475,6 @@ function renderLessons() {
     }
 
 
-    // Notes count
     if (notesCount) {
 
         notesCount.textContent =
@@ -1057,7 +1492,6 @@ function renderLessons() {
     }
 
 
-    // Total study time
     const totalMinutes =
         lessons.reduce(
             function (
@@ -1086,7 +1520,6 @@ function renderLessons() {
     }
 
 
-    // Remove old lesson cards
     const existingCards =
         lessonList.querySelectorAll(
             ".lesson-card"
@@ -1102,7 +1535,6 @@ function renderLessons() {
     );
 
 
-    // No lessons
     if (lessons.length === 0) {
 
         emptyState.style.display =
@@ -1113,12 +1545,10 @@ function renderLessons() {
     }
 
 
-    // Has lessons
     emptyState.style.display =
         "none";
 
 
-    // Create lesson cards
     lessons.forEach(
         function (lesson) {
 
@@ -1154,6 +1584,22 @@ function renderLessons() {
                         )}
                     </p>
 
+                    ${
+                        lesson.audioSaved
+                            ? `
+                                <p
+                                    style="
+                                        margin-top:8px;
+                                        color:#16a34a;
+                                        font-weight:700;
+                                    "
+                                >
+                                    🎙️ Recording saved
+                                </p>
+                              `
+                            : ""
+                    }
+
                 </div>
 
                 <div>
@@ -1174,6 +1620,52 @@ function renderLessons() {
             lessonList.appendChild(
                 card
             );
+
+
+            // Add play button
+            if (
+                lesson.audioSaved
+            ) {
+
+                const playButton =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                playButton.type =
+                    "button";
+
+
+                playButton.className =
+                    "btn";
+
+
+                playButton.textContent =
+                    "▶ Play Recording";
+
+
+                playButton.style.marginTop =
+                    "12px";
+
+
+                playButton.addEventListener(
+                    "click",
+                    function () {
+
+                        playSavedRecording(
+                            lesson.id
+                        );
+
+                    }
+                );
+
+
+                card.appendChild(
+                    playButton
+                );
+
+            }
 
         }
     );
