@@ -743,3 +743,188 @@ button {
     }
 
 }
+/* ==========================================
+   LECTURE RECORDING PLAYER
+========================================== */
+
+.recording-player {
+    width: 100%;
+    margin-top: 18px;
+    padding: 18px;
+    background: #f8fafc;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    box-sizing: border-box;
+}
+
+
+/* ==========================================
+   RECORDING TITLE
+========================================== */
+
+.recording-player-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 12px;
+
+    color: #1e3a8a;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+/* ==========================================
+   NATIVE AUDIO PLAYER
+========================================== */
+
+.recording-player audio {
+    display: block;
+
+    width: 100%;
+    height: 48px;
+
+    margin: 0;
+
+    border-radius: 10px;
+}
+
+
+/* ==========================================
+   SAVED MESSAGE
+========================================== */
+
+.recording-saved-text {
+    margin-top: 10px;
+
+    color: #16a34a;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+/* ==========================================
+   PLAY SAVED LECTURE BUTTON
+========================================== */
+
+.play-recording-btn {
+    display: flex !important;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 100% !important;
+    min-height: 52px !important;
+
+    margin-top: 14px !important;
+    padding: 14px 20px !important;
+
+    box-sizing: border-box;
+
+    border: none !important;
+    border-radius: 12px !important;
+
+    background: #2563eb !important;
+    color: #ffffff !important;
+
+    font-family: inherit;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+/* ==========================================
+   BUTTON HOVER
+========================================== */
+
+.play-recording-btn:hover {
+    background: #1d4ed8 !important;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 6px 14px
+        rgba(37, 99, 235, 0.20);
+}
+
+
+/* ==========================================
+   BUTTON PRESS
+========================================== */
+
+.play-recording-btn:active {
+    transform: translateY(0);
+
+    box-shadow: none;
+}
+
+
+/* ==========================================
+   DISABLED BUTTON
+========================================== */
+
+.play-recording-btn:disabled {
+    opacity: 0.7;
+
+    cursor: wait;
+
+    transform: none;
+}
+
+
+/* ==========================================
+   LESSON CARD
+========================================== */
+
+.lesson-card {
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 700px) {
+
+    .recording-player {
+        margin-top: 15px;
+
+        padding: 15px;
+
+        border-radius: 14px;
+    }
+
+
+    .recording-player-label {
+        font-size: 14px;
+    }
+
+
+    .recording-player audio {
+        height: 48px;
+    }
+
+
+    .play-recording-btn {
+        min-height: 54px !important;
+
+        padding: 15px 18px !important;
+
+        font-size: 16px !important;
+
+        border-radius: 12px !important;
+    }
+
+}
